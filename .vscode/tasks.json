@@ -1,0 +1,35 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++.exe build active file",
+            "command": "g++",
+            "args": [
+                "-g",
+                "-std=c++17",
+                "-I${workspaceFolder}/include",
+                "-L${workspaceFolder}/lib",
+                "${workspaceFolder}/src/main.cpp",
+                "${workspaceFolder}/src/glad.c",
+                "${workspaceFolder}/lib/libglfw3dll.a",
+                "-lopengl32",
+                "-lgdi32",
+                "-luser32",
+                "-o",
+                "${workspaceFolder}/gravity_sim.exe"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "compiler: g++"
+        }
+    ]
+}
