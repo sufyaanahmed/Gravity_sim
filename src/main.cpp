@@ -6,6 +6,45 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+GLuint CompileShader(GLenum type, const char* src) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &src, nullptr);
+    glCompileShader(shader);
+
+    GLint success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        char log[512];
+        glGetShaderInfoLog(shader, 512, nullptr, log);
+        std::cerr << "Shader compile error:\n" << log << "\n";
+    }
+
+    return shader;
+}
+
+GLuint CreateShaderProgram(const char* vertSrc, const char* fragSrc) {
+    GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vertSrc);
+    GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragSrc);
+    GLuint program = glCreateProgram();
+
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+
+    GLint success;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        char log[512];
+        glGetProgramInfoLog(program, 512, nullptr, log);
+        std::cerr << "Shader link error:\n" << log << "\n";
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+    return program;
+}
+
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -71,10 +110,12 @@ public:
     void ApplyForce(const glm::vec3& force, float dt) {
         glm::vec3 acceleration = force / mass;
         velocity += acceleration * dt;
+        velocity.y = 0.0f; //Preventing the movement of the y-axis
     }
 
     void Update(float dt) {
         position += velocity * dt;
+        position.y = 25.0f;
     }
 
     void Draw(int slices, int stacks) {
@@ -127,6 +168,24 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     if (camRadius > 2000.0f) camRadius = 2000.0f;
 }
 
+const char* vertexShaderSource = R"(
+#version 120
+varying vec3 vNormal;
+void main() {
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+    vNormal = gl_NormalMatrix * gl_Normal;
+    gl_FrontColor = gl_Color;
+}
+)";
+
+const char* fragmentShaderSource = R"(
+#version 120
+varying vec3 vNormal;
+void main() {
+    float lighting = max(dot(normalize(vNormal), vec3(0, 0, 1)), 0.3);
+    gl_FragColor = vec4(gl_Color.rgb * lighting, 1.0);
+}
+)";
 
 
 
@@ -141,6 +200,8 @@ int main() {
         std::cerr << "Failed to initialize GLAD\n";
         return -1;
     }
+    GLuint planetShader = CreateShaderProgram(vertexShaderSource, fragmentShaderSource);
+
     initLighting();
 
     glViewport(0, 0, 800, 600);
@@ -298,11 +359,12 @@ int main() {
 
             planets[i].ApplyForce(totalForce, deltaTime);
         }
-
+        glUseProgram(planetShader);
         for (auto& planet : planets) {
             planet.Update(deltaTime);
             planet.Draw(slices, stacks);
         }
+        glUseProgram(0);
 
 
         glPopMatrix();
