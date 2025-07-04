@@ -4,53 +4,12 @@
 #include <GLFW/glfw3.h>
 #include <GL/glu.h>
 #include <glm/glm.hpp>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
-GLFWwindow* StartGLFW();
 void DrawSphere(float radius, int slices, int stacks);
-void DrawFloor(float y, float width, float depth);
-void DrawGrid(float size, float step);
-void initLighting();
-void HyperBoloid_Funnel(float size, float step, float curveStrength);
-
-float camRadius = 600.0f;
-float camTheta = M_PI / 2.0f;  // horizontal angle
-float camPhi = M_PI / 4.0f;    // vertical angle
-float camX, camY, camZ;
-
-bool rotating = false;
-double lastX = 0, lastY = 0;
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT)
-        rotating = (action == GLFW_PRESS);
-}
-
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    if (rotating) {
-        float dx = (float)(xpos - lastX);
-        float dy = (float)(ypos - lastY);
-
-        camTheta -= dx * 0.005f;
-        camPhi   += dy * 0.005f;
-
-        if (camPhi < -M_PI / 2 + 0.1f) camPhi = -M_PI / 2 + 0.1f;
-        if (camPhi >  M_PI / 2 - 0.1f) camPhi =  M_PI / 2 - 0.1f;
-    }
-
-    lastX = xpos;
-    lastY = ypos;
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    camRadius -= yoffset * 10.0f;
-    if (camRadius < 100.0f) camRadius = 100.0f;
-    if (camRadius > 2000.0f) camRadius = 2000.0f;
-}
-
 
 class Sphere {
 public:
@@ -127,6 +86,50 @@ public:
     }
 };
 
+GLFWwindow* StartGLFW();
+void DrawFloor(float y, float width, float depth);
+void DrawGrid(float size, float step);
+void initLighting();
+void HyperBoloid_Funnel_WithMass(std::vector<Sphere>& planets, float size, float step);
+
+float camRadius = 600.0f;
+float camTheta = M_PI / 2.0f;  // horizontal angle
+float camPhi = M_PI / 4.0f;    // vertical angle
+float camX, camY, camZ;
+
+bool rotating = false;
+double lastX = 0, lastY = 0;
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
+        rotating = (action == GLFW_PRESS);
+}
+
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (rotating) {
+        float dx = (float)(xpos - lastX);
+        float dy = (float)(ypos - lastY);
+
+        camTheta -= dx * 0.005f;
+        camPhi   += dy * 0.005f;
+
+        if (camPhi < -M_PI / 2 + 0.1f) camPhi = -M_PI / 2 + 0.1f;
+        if (camPhi >  M_PI / 2 - 0.1f) camPhi =  M_PI / 2 - 0.1f;
+    }
+
+    lastX = xpos;
+    lastY = ypos;
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    camRadius -= yoffset * 10.0f;
+    if (camRadius < 100.0f) camRadius = 100.0f;
+    if (camRadius > 2000.0f) camRadius = 2000.0f;
+}
+
+
+
+
 
 
 int main() {
@@ -159,11 +162,60 @@ int main() {
     //float position[3] = { 0.0f, 200.0f, 0.0f };
     //float velocity[3] = { 0.0f, 0.0f, 0.0f };
 
-    Sphere ball1(30.0f, -200.0f, 200.0f, 0.0f, 1.0f, 0.0f, 0.0f,4.0f); // Red, left
-    Sphere ball2(30.0f,  200.0f, 200.0f, 0.0f, 0.0f, 0.0f, 1.0f,100.0f); // Blue, right
+    std::vector<Sphere> planets;
+
+    // Sun
+    planets.emplace_back(60.0f, 0.0f, 25.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.989e6f);
+
+    // Mercury
+    Sphere mercury(5.0f, 100.0f, 25.0f, 0.0f, 0.5f, 0.5f, 0.5f, 0.33f);
+    mercury.velocity.z = 130.0f;
+    planets.push_back(mercury);
+
+    // Venus
+    Sphere venus(10.0f, 150.0f, 25.0f, 0.0f, 0.9f, 0.7f, 0.2f, 4.87f);
+    venus.velocity.z = 108.0f;
+    planets.push_back(venus);
+
+    // Earth
+    Sphere earth(12.0f, 200.0f, 25.0f, 0.0f, 0.2f, 0.2f, 1.0f, 5.97f);
+    earth.velocity.z = 98.0f;
+    planets.push_back(earth);
+
+    // Mars
+    Sphere mars(10.0f, 250.0f, 25.0f, 0.0f, 1.0f, 0.3f, 0.1f, 0.64f);
+    mars.velocity.z = 85.0f;
+    planets.push_back(mars);
+
+    // Jupiter
+    Sphere jupiter(25.0f, 350.0f, 25.0f, 0.0f, 1.0f, 0.9f, 0.6f, 1898.0f);
+    jupiter.velocity.z = 50.0f;
+    planets.push_back(jupiter);
+    /*
+    // dummy planet with the mass of sun
+    Sphere dummy(25.0f, 350.0f, 25.0f, 0.0f, 1.0f, 0.9f, 0.6f, 1.989e6f);
+    dummy.velocity.z = 50.0f;
+    planets.push_back(dummy);
+    */
+
+    // Saturn
+    Sphere saturn(22.0f, 450.0f, 25.0f, 0.0f, 1.0f, 0.8f, 0.4f, 568.0f);
+    saturn.velocity.z = 40.0f;
+    planets.push_back(saturn);
+
+    // Uranus
+    Sphere uranus(18.0f, 550.0f, 25.0f, 0.0f, 0.6f, 0.8f, 1.0f, 86.8f);
+    uranus.velocity.z = 30.0f;
+    planets.push_back(uranus);
+
+    // Neptune
+    Sphere neptune(17.0f, 650.0f, 25.0f, 0.0f, 0.4f, 0.4f, 1.0f, 102.0f);
+    neptune.velocity.z = 25.0f;
+    planets.push_back(neptune);
+
 
     //ball1.velocity = glm::vec3(0.0f, 0.0f, 20.0f);  // optional initial nudge
-    ball2.velocity = glm::vec3(0.0f, 0.0f, -20.0f);
+    
 
 
 
@@ -228,34 +280,36 @@ int main() {
         glPushMatrix();
         //glTranslatef(position[0], position[1], position[2]);
         glColor3f(1.0f, 1.0f, 1.0f);
-        // Calculate gravitational force between ball1 and ball2
-        glm::vec3 dir = ball2.position - ball1.position;
-        float dist2 = glm::dot(dir, dir) + 1.0f; // Add small constant to prevent divide-by-zero
-        float dist = sqrt(dist2);
-        glm::vec3 dirNormalized = dir / dist;
+        for (size_t i = 0; i < planets.size(); ++i) {
+            glm::vec3 totalForce(0.0f);
 
-        //float G = 6.67430e-11f;
-        float G = 100.0f; //scaled-up gravity for visual simulation
-        float forceMag = G * ball1.mass * ball2.mass / dist2;
-        glm::vec3 force = dirNormalized * forceMag;
+            for (size_t j = 0; j < planets.size(); ++j) {
+                if (i == j) continue;
 
-        // Apply forces
-        ball1.ApplyForce(force, deltaTime);
-        ball2.ApplyForce(-force, deltaTime);
+                glm::vec3 dir = planets[j].position - planets[i].position;
+                float dist2 = glm::dot(dir, dir) + 1.0f;
+                float dist = sqrt(dist2);
+                glm::vec3 dirNorm = dir / dist;
 
-        // Update positions
-        ball1.Update(deltaTime);
-        ball2.Update(deltaTime);
+                float G = 6.67430e-1f; // Scaled gravitational constant
+                float forceMag = G * planets[i].mass * planets[j].mass / dist2;
+                totalForce += dirNorm * forceMag;
+            }
 
+            planets[i].ApplyForce(totalForce, deltaTime);
+        }
 
-        ball1.Draw(slices, stacks);
-        ball2.Draw(slices, stacks);
+        for (auto& planet : planets) {
+            planet.Update(deltaTime);
+            planet.Draw(slices, stacks);
+        }
+
 
         glPopMatrix();
         
         //DrawFloor(0.0f, 800.0f, 400.0f);
         //DrawGrid(1000.0f,50.0f);
-        HyperBoloid_Funnel(500.0f, 10.0f, 0.000f);
+        HyperBoloid_Funnel_WithMass(planets, 500.0f, 15.0f);
         glfwSwapBuffers(window);
         glfwPollEvents();
         
@@ -346,43 +400,46 @@ void initLighting() {
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
 }
 
-void HyperBoloid_Funnel(float size, float step, float curveStrength) {
+void HyperBoloid_Funnel_WithMass(std::vector<Sphere>& planets, float size, float step) {
     glPushMatrix();
-    
-    // Set subtle glowing color (you can animate later)
-    glColor3f(0.8f, 0.8f, 0.8f);  
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Wireframe mode
+    glColor3f(0.9f, 0.9f, 0.9f);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     for (float x = -size; x < size; x += step) {
         for (float z = -size; z < size; z += step) {
-            float x0 = x;
-            float z0 = z;
-            float x1 = x + step;
-            float z1 = z + step;
+            float y00 = 0.0f, y10 = 0.0f, y01 = 0.0f, y11 = 0.0f;
 
-            float y00 = -curveStrength * (x0 * x0 + z0 * z0);
-            float y10 = -curveStrength * (x1 * x1 + z0 * z0);
-            float y01 = -curveStrength * (x0 * x0 + z1 * z1);
-            float y11 = -curveStrength * (x1 * x1 + z1 * z1);
+            for (const auto& p : planets) {
+                float dx0 = x - p.position.x, dz0 = z - p.position.z;
+                float dx1 = x + step - p.position.x, dz1 = z + step - p.position.z;
+
+                float dist00 = dx0*dx0 + dz0*dz0 + 1.0f;
+                float dist10 = dx1*dx1 + dz0*dz0 + 1.0f;
+                float dist01 = dx0*dx0 + dz1*dz1 + 1.0f;
+                float dist11 = dx1*dx1 + dz1*dz1 + 1.0f;
+
+                y00 -= glm::min(p.mass / dist00 * 0.03f, 50.0f);
+                y10 -= glm::min(p.mass / dist10 * 0.03f, 50.0f);
+                y01 -= glm::min(p.mass / dist01 * 0.03f, 50.0f);
+                y11 -= glm::min(p.mass / dist11 * 0.03f, 50.0f);
+
+            }
+
+            float x0 = x, z0 = z;
+            float x1 = x + step, z1 = z + step;
 
             glBegin(GL_TRIANGLES);
-
-            // First triangle
             glVertex3f(x0, y00, z0);
             glVertex3f(x1, y10, z0);
             glVertex3f(x1, y11, z1);
 
-            // Second triangle
             glVertex3f(x0, y00, z0);
             glVertex3f(x1, y11, z1);
             glVertex3f(x0, y01, z1);
-
             glEnd();
         }
     }
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
-
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glPopMatrix();
 }
